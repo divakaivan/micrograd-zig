@@ -8,7 +8,7 @@ const Op = enum {
     tanh,
 };
 
-pub fn buildTopo(
+pub fn build_topo(
     allocator: *std.mem.Allocator,
     node: *Value,
     visited: *std.AutoHashMap(*Value, bool),
@@ -19,7 +19,7 @@ pub fn buildTopo(
 
         for (node.prev) |p| {
             if (p) |child| {
-                try buildTopo(allocator, child, visited, topo);
+                try build_topo(allocator, child, visited, topo);
             }
         }
         try topo.append(node);
@@ -89,12 +89,12 @@ const Value = struct {
         self.prev[0].?.grad = (1 - t * t) * self.grad;
     }
 
-    fn showGraph(self: *const Value, indent: usize) void {
+    fn show(self: *const Value, indent: usize) void {
         std.debug.print("{s: >[1]}Value(label: {[2]s}, op: {[3]s}, data: {[4]d}, grad: {[5]d})\n", .{ "", indent, self.label, @tagName(self.op), self.data, self.grad });
 
         for (self.prev) |p| {
             if (p) |v| {
-                v.showGraph(indent + 2);
+                v.show(indent + 2);
             }
         }
     }
@@ -108,7 +108,7 @@ const Value = struct {
         var topo = std.ArrayList(*Value).init(allocator);
         defer topo.deinit();
 
-        try buildTopo(&allocator, self, &visited, &topo);
+        try build_topo(&allocator, self, &visited, &topo);
 
         var i = topo.items.len;
         while (i > 0) : (i -= 1) {
@@ -139,7 +139,7 @@ test "testing Value" {
     o.grad = 1.0;
 
     try o.backprop();
-    o.showGraph(0);
+    o.show(0);
 
     // check data
     try expectApproxEqAbs(o.data, 0.7071067811865476, 1e-12);
