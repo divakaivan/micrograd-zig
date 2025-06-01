@@ -1,5 +1,5 @@
 const std = @import("std");
-const testing = std.testing;
+const expectApproxEqAbs = std.testing.expectApproxEqAbs;
 
 const Op = enum {
     init,
@@ -7,6 +7,24 @@ const Op = enum {
     mul,
     tanh,
 };
+
+pub fn buildTopo(
+    allocator: *std.mem.Allocator,
+    node: *Value,
+    visited: *std.AutoHashMap(*Value, bool),
+    topo: *std.ArrayList(*Value),
+) !void {
+    if (!visited.contains(node)) {
+        try visited.put(node, true);
+
+        for (node.prev) |p| {
+            if (p) |child| {
+                try buildTopo(allocator, child, visited, topo);
+            }
+        }
+        try topo.append(node);
+    }
+}
 
 const Value = struct {
     data: f64,
@@ -80,6 +98,24 @@ const Value = struct {
             }
         }
     }
+
+    fn backprop(self: *Value) !void {
+        // topological sort
+        var allocator = std.testing.allocator;
+        var visited = std.AutoHashMap(*Value, bool).init(allocator);
+        defer visited.deinit();
+
+        var topo = std.ArrayList(*Value).init(allocator);
+        defer topo.deinit();
+
+        try buildTopo(&allocator, self, &visited, &topo);
+
+        var i = topo.items.len;
+        while (i > 0) : (i -= 1) {
+            var item = topo.items[i - 1];
+            item.backward(item);
+        }
+    }
 };
 
 test "testing Value" {
@@ -101,12 +137,31 @@ test "testing Value" {
     o.label = "o";
 
     o.grad = 1.0;
-    o.backward(&o);
-    n.backward(&n);
-    b.backward(&b);
-    x1w1x2w2.backward(&x1w1x2w2);
-    x1w1.backward(&x1w1);
-    x2w2.backward(&x2w2);
 
-    o.showGraph(1);
+    try o.backprop();
+    o.showGraph(0);
+
+    // check data
+    try expectApproxEqAbs(o.data, 0.7071067811865476, 1e-12);
+    try expectApproxEqAbs(n.data, 0.8813735870195432, 1e-12);
+    try expectApproxEqAbs(x1w1x2w2.data, -6.0, 1e-12);
+    try expectApproxEqAbs(x1w1.data, -6.0, 1e-12);
+    try expectApproxEqAbs(x2w2.data, 0.0, 1e-12);
+    try expectApproxEqAbs(x1.data, 2.0, 1e-12);
+    try expectApproxEqAbs(w1.data, -3.0, 1e-12);
+    try expectApproxEqAbs(x2.data, 0.0, 1e-12);
+    try expectApproxEqAbs(w2.data, 1.0, 1e-12);
+    try expectApproxEqAbs(b.data, 6.881373587019543, 1e-12);
+
+    // check grads
+    try expectApproxEqAbs(o.grad, 1.0, 1e-12);
+    try expectApproxEqAbs(n.grad, 0.5, 1e-12);
+    try expectApproxEqAbs(x1w1x2w2.grad, 0.5, 1e-12);
+    try expectApproxEqAbs(x1w1.grad, 0.5, 1e-12);
+    try expectApproxEqAbs(x2w2.grad, 0.5, 1e-12);
+    try expectApproxEqAbs(x1.grad, -1.5, 1e-12);
+    try expectApproxEqAbs(w1.grad, 1.0, 1e-12);
+    try expectApproxEqAbs(x2.grad, 0.5, 1e-12);
+    try expectApproxEqAbs(w2.grad, 0.0, 1e-12);
+    try expectApproxEqAbs(b.grad, 0.5, 1e-12);
 }
