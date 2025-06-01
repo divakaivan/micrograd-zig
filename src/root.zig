@@ -5,8 +5,8 @@ const Value = struct {
     data: f64,
     grad: f64 = 0.0,
     prev: [2]?*const Value = .{ null, null },
-    op: ?[]const u8 = null,
-    label: ?[]const u8 = null,
+    op: []const u8 = "init",
+    label: []const u8 = "",
 
     fn init(data: f64, label: []const u8) Value {
         return Value{
@@ -37,7 +37,7 @@ const Value = struct {
         return Value{
             .data = t,
             .prev = .{ self, null },
-            .op = "t",
+            .op = "tanh",
         };
     }
 
@@ -46,7 +46,7 @@ const Value = struct {
         // const tab = space_buf[0..@min(indent, space_buf.len)];
         // @memset(tab, ' ');
         // std.debug.print("{s}Value(label: {s}, data: {d}, op: {s})\n", .{ tab, self.label orelse "<>", self.data, self.op orelse "init" });
-        std.debug.print("{s: >[1]}Value(label: {[2]s}, data: {[3]d}, op: {[4]s})\n", .{ "", indent, self.label orelse "<>", self.data, self.op orelse "init" });
+        std.debug.print("{s: >[1]}Value(label: {[2]s}, data: {[3]d}, op: {[4]s})\n", .{ "", indent, self.label, self.data, self.op });
 
         for (self.prev) |p| {
             if (p) |v| {
@@ -78,3 +78,4 @@ test "testing Value" {
 
     // try testing.expect(o.data == 0.6043677771171636);
 }
+
