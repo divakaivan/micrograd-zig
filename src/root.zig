@@ -42,10 +42,6 @@ const Value = struct {
     }
 
     fn showGraph(self: *const Value, indent: usize) void {
-        // var space_buf: [128]u8 = undefined;
-        // const tab = space_buf[0..@min(indent, space_buf.len)];
-        // @memset(tab, ' ');
-        // std.debug.print("{s}Value(label: {s}, data: {d}, op: {s})\n", .{ tab, self.label orelse "<>", self.data, self.op orelse "init" });
         std.debug.print("{s: >[1]}Value(label: {[2]s}, data: {[3]d}, op: {[4]s})\n", .{ "", indent, self.label, self.data, self.op });
 
         for (self.prev) |p| {
@@ -78,4 +74,3 @@ test "testing Value" {
 
     // try testing.expect(o.data == 0.6043677771171636);
 }
-
