@@ -1,25 +1,24 @@
-//! By convention, root.zig is the root source file when making a library. If
-//! you are making an executable, the convention is to delete this file and
-//! start with main.zig instead.
 const std = @import("std");
 const testing = std.testing;
 
 const Value = struct {
     data: f64,
     grad: f64 = 0.0,
-    prev: [2]f64 = undefined,
-    op: *const [1:0]u8 = undefined,
+    prev: [2]?*const Value = .{ null, null },
+    op: ?[]const u8 = null,
+    label: ?[]const u8 = null,
 
-    fn init(data: f64) Value {
+    fn init(data: f64, label: []const u8) Value {
         return Value{
             .data = data,
+            .label = label,
         };
     }
 
     fn add(self: *const Value, other: *const Value) Value {
         return Value{
             .data = self.data + other.data,
-            .prev = .{ self.data, other.data },
+            .prev = .{ self, other },
             .op = "+",
         };
     }
@@ -27,25 +26,54 @@ const Value = struct {
     fn mul(self: *const Value, other: *const Value) Value {
         return Value{
             .data = self.data * other.data,
-            .prev = .{ self.data, other.data },
+            .prev = .{ self, other },
             .op = "*",
         };
     }
+
+    fn tanh(self: *const Value) Value {
+        const x = self.data;
+        const t = (std.math.exp(2 * x) - 1) / (std.math.exp(2 * x) + 1);
+        return Value{
+            .data = t,
+            .prev = .{ self, null },
+            .op = "t",
+        };
+    }
+
+    fn showGraph(self: *const Value, indent: usize) void {
+        var space_buf: [128]u8 = undefined;
+        const tab = space_buf[0..@min(indent, space_buf.len)];
+        @memset(tab, ' ');
+        std.debug.print("{s}Value(label: {s}, data: {d}, op: {s})\n", .{ tab, self.label orelse "<>", self.data, self.op orelse "init" });
+
+        for (self.prev) |p| {
+            if (p) |v| {
+                v.printRecursive(indent + 2);
+            }
+        }
+    }
 };
 
-pub fn main() void {
-    return;
-}
-
 test "testing Value" {
-    const a = Value.init(2.0);
-    const b = Value.init(-3.0);
-    const c = Value.init(10.0);
-    const e = a.mul(&b);
-    const d = e.add(&c);
-    const f = Value.init(-2.0);
-    const L = d.mul(&f);
+    const x1 = Value.init(2.0, "x1");
+    const x2 = Value.init(0.0, "x2");
+    const w1 = Value.init(-3.0, "w1");
+    const w2 = Value.init(1.0, "w2");
+    const b = Value.init(6.8813735870195432, "b");
 
-    std.debug.print("{}", .{L});
-    try testing.expect(L.data == -8.0);
+    var x1w1 = x1.mul(&w1);
+    x1w1.label = "x1*w1";
+    var x2w2 = x2.mul(&w2);
+    x2w2.label = "x2*w2";
+    var x1w1x2w2 = x1w1.add(&x2w2);
+    x1w1x2w2.label = "x1w1 + x2w2";
+    var n = x1w1x2w2.add(&b);
+    n.label = "n";
+    var o = n.tanh();
+    o.label = "o";
+
+    o.showGraph(1);
+
+    // try testing.expect(o.data == 0.6043677771171636);
 }
