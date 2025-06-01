@@ -8,7 +8,7 @@ const Op = enum {
     tanh,
 };
 
-pub fn build_topo(
+fn build_topo(
     allocator: *std.mem.Allocator,
     node: *Value,
     visited: *std.AutoHashMap(*Value, bool),
@@ -26,7 +26,7 @@ pub fn build_topo(
     }
 }
 
-const Value = struct {
+pub const Value = struct {
     data: f64,
     grad: f64 = 0.0,
     prev: [2]?*Value = .{ null, null },
@@ -38,14 +38,14 @@ const Value = struct {
         _ = &self;
     }
 
-    fn init(data: f64, label: []const u8) Value {
+    pub fn init(data: f64, label: []const u8) Value {
         return Value{
             .data = data,
             .label = label,
         };
     }
 
-    fn add(self: *Value, other: *Value) Value {
+    pub fn add(self: *Value, other: *Value) Value {
         return Value{
             .data = self.data + other.data,
             .prev = .{ self, other },
@@ -54,12 +54,12 @@ const Value = struct {
         };
     }
 
-    fn add_backward(self: *Value) void {
+    pub fn add_backward(self: *Value) void {
         self.prev[0].?.grad = 1.0 * self.grad;
         self.prev[1].?.grad = 1.0 * self.grad;
     }
 
-    fn mul(self: *Value, other: *Value) Value {
+    pub fn mul(self: *Value, other: *Value) Value {
         return Value{
             .data = self.data * other.data,
             .prev = .{ self, other },
@@ -68,12 +68,12 @@ const Value = struct {
         };
     }
 
-    fn mul_backward(self: *Value) void {
+    pub fn mul_backward(self: *Value) void {
         self.prev[0].?.grad = self.prev[1].?.data * self.grad;
         self.prev[1].?.grad = self.prev[0].?.data * self.grad;
     }
 
-    fn tanh(self: *Value) Value {
+    pub fn tanh(self: *Value) Value {
         const x = self.data;
         const t = (std.math.exp(2 * x) - 1) / (std.math.exp(2 * x) + 1);
         return Value{
@@ -84,12 +84,12 @@ const Value = struct {
         };
     }
 
-    fn tanh_backward(self: *Value) void {
+    pub fn tanh_backward(self: *Value) void {
         const t = self.data;
         self.prev[0].?.grad = (1 - t * t) * self.grad;
     }
 
-    fn show(self: *const Value, indent: usize) void {
+    pub fn show(self: *const Value, indent: usize) void {
         std.debug.print("{s: >[1]}Value(label: {[2]s}, op: {[3]s}, data: {[4]d}, grad: {[5]d})\n", .{ "", indent, self.label, @tagName(self.op), self.data, self.grad });
 
         for (self.prev) |p| {
@@ -99,9 +99,10 @@ const Value = struct {
         }
     }
 
-    fn backprop(self: *Value) !void {
+    pub fn backprop(self: *Value) !void {
         // topological sort
-        var allocator = std.testing.allocator;
+        // TODO: figure out an appropriate mem allocator
+        var allocator = std.heap.page_allocator;
         var visited = std.AutoHashMap(*Value, bool).init(allocator);
         defer visited.deinit();
 
