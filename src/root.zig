@@ -110,6 +110,7 @@ const Value = struct {
 
         try build_topo(&allocator, self, &visited, &topo);
 
+        self.grad = 1.0;
         var i = topo.items.len;
         while (i > 0) : (i -= 1) {
             var item = topo.items[i - 1];
@@ -135,8 +136,6 @@ test "testing Value" {
     n.label = "n";
     var o = n.tanh();
     o.label = "o";
-
-    o.grad = 1.0;
 
     try o.backprop();
     o.show(0);
