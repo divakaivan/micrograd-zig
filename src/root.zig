@@ -9,7 +9,7 @@ const Op = enum {
 };
 
 fn build_topo(
-    allocator: *std.mem.Allocator,
+    allocator: std.mem.Allocator,
     node: *Value,
     visited: *std.AutoHashMap(*Value, bool),
     topo: *std.ArrayList(*Value),
@@ -102,14 +102,14 @@ pub const Value = struct {
     pub fn backprop(self: *Value) !void {
         // topological sort
         // TODO: figure out an appropriate mem allocator
-        var allocator = std.heap.page_allocator;
+        const allocator = std.heap.page_allocator;
         var visited = std.AutoHashMap(*Value, bool).init(allocator);
         defer visited.deinit();
 
         var topo = std.ArrayList(*Value).init(allocator);
         defer topo.deinit();
 
-        try build_topo(&allocator, self, &visited, &topo);
+        try build_topo(allocator, self, &visited, &topo);
 
         self.grad = 1.0;
         var i = topo.items.len;
