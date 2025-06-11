@@ -13,7 +13,6 @@ const Op = enum {
 };
 
 fn build_topo(
-    allocator: std.mem.Allocator,
     node: *Value,
     visited: *std.AutoHashMap(*Value, bool),
     topo: *std.ArrayList(*Value),
@@ -23,7 +22,7 @@ fn build_topo(
 
         for (node.prev) |p| {
             if (p) |child| {
-                try build_topo(allocator, child, visited, topo);
+                try build_topo(child, visited, topo);
             }
         }
         try topo.append(node);
@@ -51,7 +50,7 @@ pub const Value = struct {
     }
 
     pub fn add(self: *Value, other: *Value) Value {
-        // TODO accept Value or float.
+        // TODO accept Value or float. -> use tagged union
         return Value{
             .data = self.data + other.data,
             .prev = .{ self, other },
@@ -143,7 +142,7 @@ pub const Value = struct {
         var topo = std.ArrayList(*Value).init(allocator);
         defer topo.deinit();
 
-        try build_topo(allocator, self, &visited, &topo);
+        try build_topo(self, &visited, &topo);
 
         self.grad = 1.0;
         var i = topo.items.len;
@@ -172,7 +171,7 @@ test "2-dim neuron with staged tanh" {
     var b = Value.init(6.8813735870195432, "b");
 
     var x1w1 = x1.mul(&w1);
-    x1w1.label = "x1*w1";
+    //x1w1.label = "x1*w1";
     var x2w2 = x2.mul(&w2);
     x2w2.label = "x2*w2";
     var x1w1x2w2 = x1w1.add(&x2w2);
