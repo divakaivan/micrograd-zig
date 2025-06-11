@@ -120,15 +120,17 @@ pub const Value = struct {
     }
 };
 
-test "failing" {
+test "gradient is correct when using same var multiple times" {
     var a = Value.init(3.0, "a");
     var b = a.add(&a);
     b.label = "b";
     try b.backprop();
-    b.show(0);
+    // b.show(0);
+
+    try std.testing.expect(a.grad == 2);
 }
 
-test "testing Value" {
+test "Value" {
     var x1 = Value.init(2.0, "x1");
     var x2 = Value.init(0.0, "x2");
     var w1 = Value.init(-3.0, "w1");
