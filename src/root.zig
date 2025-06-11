@@ -6,6 +6,8 @@ const Op = enum {
     add,
     mul,
     tanh,
+    exp,
+    pow,
 };
 
 fn build_topo(
@@ -69,8 +71,23 @@ pub const Value = struct {
     }
 
     pub fn mul_backward(self: *Value) void {
+        // self.grad += out.data * out.grad
         self.prev[0].?.grad += self.prev[1].?.data * self.grad;
+        // other.grad += self.data * out.grad
         self.prev[1].?.grad += self.prev[0].?.data * self.grad;
+    }
+
+    pub fn pow(self: *Value, other: *Value) Value {
+        return Value{
+            .data = std.math.pow(f64, self.data, other.data),
+            .prev = .{ self, other },
+            .op = Op.pow,
+            .backward = pow_backward,
+        };
+    }
+
+    pub fn pow_backward(self: *Value) void {
+        self.prev[0].?.grad += self.prev[1].?.data * (std.math.pow(f64, self.prev[0].?.data, (self.prev[1].?.data - 1))) * self.grad;
     }
 
     pub fn tanh(self: *Value) Value {
@@ -87,6 +104,19 @@ pub const Value = struct {
     pub fn tanh_backward(self: *Value) void {
         const t = self.data;
         self.prev[0].?.grad += (1 - t * t) * self.grad;
+    }
+
+    pub fn exp(self: *Value) Value {
+        return Value{
+            .data = std.math.exp(self.data),
+            .prev = .{ self, null },
+            .op = Op.exp,
+            .backward = exp_backward,
+        };
+    }
+
+    pub fn exp_backward(self: *Value) void {
+        self.prev[0].?.grad += self.data * self.grad;
     }
 
     pub fn show(self: *const Value, indent: usize) void {
@@ -130,7 +160,46 @@ test "gradient is correct when using same var multiple times" {
     try std.testing.expect(a.grad == 2);
 }
 
-test "Value" {
+test "2-dim neuron with staged tanh" {
+    var x1 = Value.init(2.0, "x1");
+    var x2 = Value.init(0.0, "x2");
+    var w1 = Value.init(-3.0, "w1");
+    var w2 = Value.init(1.0, "w2");
+    var b = Value.init(6.8813735870195432, "b");
+
+    var x1w1 = x1.mul(&w1);
+    x1w1.label = "x1*w1";
+    var x2w2 = x2.mul(&w2);
+    x2w2.label = "x2*w2";
+    var x1w1x2w2 = x1w1.add(&x2w2);
+    x1w1x2w2.label = "x1w1 + x2w2";
+    var n = x1w1x2w2.add(&b);
+    n.label = "n";
+    // step-by-step tanh ----------------------------
+    var two = Value.init(2.0, "two");
+    var n2 = n.mul(&two);
+    n2.label = "n2";
+    var e = n2.exp();
+    e.label = "n2_exp";
+    var pos_1 = Value.init(1.0, "pos1");
+    pos_1.label = "pos_1";
+    var neg_1 = Value.init(-1.0, "neg1");
+    neg_1.label = "neg_1";
+    var o_above = e.add(&neg_1);
+    o_above.label = "e_above";
+    var o_below = e.add(&pos_1);
+    o_below.label = "e_below";
+    var o_below_pow_neg1 = o_below.pow(&neg_1);
+    o_below_pow_neg1.label = "e_below_pow_neg1";
+    var o = o_above.mul(&o_below_pow_neg1);
+    o.label = "o";
+
+    try o.backprop();
+
+    o.show(0);
+}
+
+test "2-dim neuron" {
     var x1 = Value.init(2.0, "x1");
     var x2 = Value.init(0.0, "x2");
     var w1 = Value.init(-3.0, "w1");
@@ -149,7 +218,7 @@ test "Value" {
     o.label = "o";
 
     try o.backprop();
-    o.show(0);
+    // o.show(0);
 
     // check data
     try expectApproxEqAbs(o.data, 0.7071067811865476, 1e-12);
