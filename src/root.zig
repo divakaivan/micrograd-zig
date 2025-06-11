@@ -6,6 +6,7 @@ const Op = enum {
     init,
     add,
     mul,
+    // div, // TODO atm div is a * b ** -1
     tanh,
     exp,
     pow,
@@ -29,6 +30,7 @@ fn build_topo(
     }
 }
 
+// TODO ptr situation
 pub const Value = struct {
     data: f64,
     grad: f64 = 0.0,
@@ -49,6 +51,7 @@ pub const Value = struct {
     }
 
     pub fn add(self: *Value, other: *Value) Value {
+        // TODO accept Value or float.
         return Value{
             .data = self.data + other.data,
             .prev = .{ self, other },
@@ -132,7 +135,7 @@ pub const Value = struct {
 
     pub fn backprop(self: *Value) !void {
         // topological sort
-        // TDO: figure out an appropriate mem allocator
+        // TODO: figure out an appropriate mem allocator
         const allocator = std.heap.page_allocator;
         var visited = std.AutoHashMap(*Value, bool).init(allocator);
         defer visited.deinit();
