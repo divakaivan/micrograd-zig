@@ -193,10 +193,13 @@ test "2-dim neuron with staged tanh" {
     o_below_pow_neg1.label = "e_below_pow_neg1";
     var o = o_above.mul(&o_below_pow_neg1);
     o.label = "o";
+    // ----------------------------------------------
 
     try o.backprop();
 
     o.show(0);
+
+    try expectApproxEqAbs(o.data, 0.7071067811865476, 1e-12);
 }
 
 test "2-dim neuron" {
