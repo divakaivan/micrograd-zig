@@ -55,8 +55,8 @@ pub const Value = struct {
     }
 
     pub fn add_backward(self: *Value) void {
-        self.prev[0].?.grad = 1.0 * self.grad;
-        self.prev[1].?.grad = 1.0 * self.grad;
+        self.prev[0].?.grad += 1.0 * self.grad;
+        self.prev[1].?.grad += 1.0 * self.grad;
     }
 
     pub fn mul(self: *Value, other: *Value) Value {
@@ -69,8 +69,8 @@ pub const Value = struct {
     }
 
     pub fn mul_backward(self: *Value) void {
-        self.prev[0].?.grad = self.prev[1].?.data * self.grad;
-        self.prev[1].?.grad = self.prev[0].?.data * self.grad;
+        self.prev[0].?.grad += self.prev[1].?.data * self.grad;
+        self.prev[1].?.grad += self.prev[0].?.data * self.grad;
     }
 
     pub fn tanh(self: *Value) Value {
@@ -86,7 +86,7 @@ pub const Value = struct {
 
     pub fn tanh_backward(self: *Value) void {
         const t = self.data;
-        self.prev[0].?.grad = (1 - t * t) * self.grad;
+        self.prev[0].?.grad += (1 - t * t) * self.grad;
     }
 
     pub fn show(self: *const Value, indent: usize) void {
@@ -101,7 +101,7 @@ pub const Value = struct {
 
     pub fn backprop(self: *Value) !void {
         // topological sort
-        // TODO: figure out an appropriate mem allocator
+        // TDO: figure out an appropriate mem allocator
         const allocator = std.heap.page_allocator;
         var visited = std.AutoHashMap(*Value, bool).init(allocator);
         defer visited.deinit();
@@ -119,6 +119,14 @@ pub const Value = struct {
         }
     }
 };
+
+test "failing" {
+    var a = Value.init(3.0, "a");
+    var b = a.add(&a);
+    b.label = "b";
+    try b.backprop();
+    b.show(0);
+}
 
 test "testing Value" {
     var x1 = Value.init(2.0, "x1");
