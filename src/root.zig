@@ -190,11 +190,11 @@ test "2-dim neuron with staged tanh" {
     var neg_1 = Value.init(-1.0, "neg1");
     neg_1.label = "neg_1";
     var o_above = e.add(&neg_1);
-    o_above.label = "e_above";
+    o_above.label = "o_above";
     var o_below = e.add(&pos_1);
-    o_below.label = "e_below";
+    o_below.label = "o_below";
     var o_below_pow_neg1 = o_below.pow(&neg_1);
-    o_below_pow_neg1.label = "e_below_pow_neg1";
+    o_below_pow_neg1.label = "o_below_pow_neg1";
     var o = o_above.mul(&o_below_pow_neg1);
     o.label = "o";
     // ----------------------------------------------
@@ -203,6 +203,8 @@ test "2-dim neuron with staged tanh" {
 
     o.show(0);
 
+    try expectApproxEqAbs(n2.grad, 0.25, 1e-12);
+    try expectApproxEqAbs(o_below_pow_neg1.grad, 0.1464466094067262, 4.828427124746192);
     try expectApproxEqAbs(o.data, 0.7071067811865476, 1e-12);
 }
 
