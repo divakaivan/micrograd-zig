@@ -6,7 +6,7 @@ const Op = enum {
     init,
     add,
     mul,
-    // div, // TODO atm div is a * b ** -1
+    // div, // TODO: atm div is a * b ** -1
     tanh,
     exp,
     pow,
@@ -29,7 +29,7 @@ fn build_topo(
     }
 }
 
-// TODO ptr situation
+// TODO: ptr situation
 pub const Value = struct {
     data: f64,
     grad: f64 = 0.0,
@@ -50,7 +50,7 @@ pub const Value = struct {
     }
 
     pub fn add(self: *Value, other: *Value) Value {
-        // TODO accept Value or float. -> use tagged union
+        // TODO: accept Value or float. -> use tagged union
         return Value{
             .data = self.data + other.data,
             .prev = .{ self, other },
