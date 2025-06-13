@@ -55,7 +55,7 @@ pub const Value = struct {
             .data = self.data + other.data,
             .prev = .{ self, other },
             .op = Op.add,
-            .backward = &add_backward,
+            .backward = add_backward,
         };
     }
 
